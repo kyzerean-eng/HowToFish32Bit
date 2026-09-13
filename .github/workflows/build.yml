@@ -1,0 +1,47 @@
+name: Build HowToFish 32-bit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract project
+        run: |
+          unzip -o HowToFish32Bit.zip -d extracted
+          echo "Isi hasil extract:"
+          find extracted -maxdepth 3 -type f | head -100
+
+      - name: Find Gradle project
+        run: |
+          PROJECT=$(find extracted -name gradlew -type f | head -1 | xargs -r dirname)
+          if [ -z "$PROJECT" ]; then
+            echo "gradlew tidak ditemukan"
+            exit 1
+          fi
+          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build APK
+        run: |
+          cd "$PROJECT"
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: HowToFish32Bit-APK
+          path: '**/build/outputs/apk/**/*.apk'
